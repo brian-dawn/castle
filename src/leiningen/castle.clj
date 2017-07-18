@@ -2,10 +2,7 @@
   (:require [clojure.set :refer [intersection]]
             [clojure.tools.namespace.parse :as p]
             [clojure.tools.namespace.find :as f]
-            [clojure.string :as string])
-  )
-
-
+            [clojure.string :as string]))
 
 (defn path-parents
   "Given a path with '.' as a separator return a set of all parents absolute paths.
@@ -20,7 +17,6 @@
     (->> perms
          (map symbol)
          set)))
-
 
 (defn import-valid
   "If the current namespace is importing another namespace we need to make sure that
@@ -62,9 +58,6 @@
                                                             :invalid-import imported-ns
                                                             :reason ::not-allowed})])))))))
 
-
-
-
 (def art "
                  |ZZzzz
                  |
@@ -86,11 +79,17 @@
 ")
 
 
+(def badart "
+   🐶  ^
+  /👕 \\|
+   👖  |
+Check your imports!
+")
 
 (defn print-failures
   "Pretty print a seq of failures."
   [failures]
-  (println art)
+
   (let [collected-failures (reduce
                             (fn [acc failure]
                               (update acc (:violating-ns failure) conj failure))
@@ -105,24 +104,19 @@
         (doseq [{:keys [invalid-import reason]} failures]
           (case reason
             ::not-allowed   (println (format "✋  %s not allowed entry" invalid-import))
-            ::no-valid-gate (println (format "🏰  %s walled off" invalid-import))))))
-
-    ;; collect into violating namespaces -> reasons/invalid imports
-)
+            ::no-valid-gate (println (format "🏰  %s walled off" invalid-import)))))))
 
   (println))
 
-
-
 (defn find-and-parse-ns [path]
   (->> (clojure.java.io/file path)
-       
+
        f/find-ns-decls-in-dir
-       
+
        (map (fn [ns]
               [(p/name-from-ns-decl ns)
                (p/deps-from-ns-decl ns)]))
-       
+
        (sort-by first)))
 
 (defn castle
@@ -132,20 +126,17 @@
   (let [src-paths (concat (:source-paths project) (:test-paths project))
         rules (:castle project)
         namespaces (mapcat find-and-parse-ns src-paths)
-        
-        failures (mapcat (fn [[current-ns imports]]
-                              (mapcat (partial import-valid rules current-ns) imports))
-                            namespaces)
-        ]
 
-    
+        failures (mapcat (fn [[current-ns imports]]
+                           (mapcat (partial import-valid rules current-ns) imports))
+                         namespaces)]
     (print-failures failures)
 
     (if (empty? failures)
-      (System/exit 0)
-      (System/exit 1)))
-
-)
-
-
+      (do
+        (println art)
+        (System/exit 0))
+      (do
+        (println badart)
+        (System/exit 1)))))
 
